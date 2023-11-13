@@ -1,149 +1,124 @@
-= Building an Application with rpms
+____
+_NOTE:_ To make the inline images larger, expand this window.
+image:../assets/slider.png[Menu Slider]
+____
 
-== Downloading the UBI
+Press the `+Create image+` button and you will be brought to the Create
+image wizard. This wizard will ask you to define several aspects of your
+new image. Image builder can define a custom filesystem layout, add
+packages to your image, and even send it right to your cloud provier if
+you’d like.
 
-In this lab, you will be installing software into the container 
-image running as an interactive application. To do this you will
-need `yum`, but do not need `systemd` for managing services within the
-container environment.  For that reason, you will be using the *Standard*
-UBI image (as opposed to the Minimal or Multi-service images).
+== ## Step 1: Specify image format
 
-Using the "buildah from" command will download and meld the container image. This particular image we are using is the Red Hat Universal Base Image or UBI. From the ourput of the command, you will notice that we are pulling down the latest one, which is for RHEL 9. 
+In Step 1. Image output, Let’s select only
+`+Virtualization - Guest image (.qcow2)+`. But take note of the various
+options Image Builder gives you for what format you’d like your image
+built in.
 
-. Execute the  download the Standard UBI
-image from Red Hat's registry.
+We will also be setting the Release to
+`+Red Hat Enterprise Linux (RHEL) 9+`, but notice that you can also
+select several other releases for production and development use cases.
 
-+
-[source,sh,role=execute]
-----
-buildah from registry.access.redhat.com/ubi9/ubi
-----
+.Image Builder Step 1
+image::ib-step1.png[Image Builder Step 1]
 
-[#repositories]
-== Installing Repositories
-In this lab, you are going to containerize a software package that is already
-packaged in RPM format and stored in the Extra Packages for Enterprise Linux
-(EPEL) repository.
+With these options selected, Press `+Next+`.
 
-Software often has requirements for prerequisite software that must be installed
-on the machine for it to work properly.  `yum` will resolve those
-dependencies for you, as long as it can locate the required packages in
-repositories defined on the machine.  The Red Hat Universal Base Image (UBI)
-downloaded in the previous step has access to some Red Hat Enterprise Linux
-repositories.  However, the target package for the lab is from EPEL.  
+== ## Step 2: Configure Insights registration
 
-. In the command below, `buildah` is going to run a command on the
-`ubi-working-container` image.  The `--` indicates that the command should be
-executed from within the container, which means the results will be applied into
-the container image.  Lastly, you are providing the `yum` command to install a
-package that defines all of the repositories from EPEL, `epel-release-latest-9`.
+Step 2 is all about how you would like to register this system. Even in
+the cloud, this type of image assumes you will be bringing your own
+subscription. You can register automatically with an activation key, or
+you can choose to register yourself later (either manually or using
+automation).
 
-+
-[source,bash]
-----
-buildah run ubi-working-container -- yum -y install https://dl.fedoraproject.org/pub/epel/epel-release-latest-9.noarch.rpm
-----
+To keep this lab simple, let’s choose to `+Register later+`
 
+.Image Builder Step 2
+image::ib-step2.png[Image Builder Step 2]
 
-. You can verify that the above command did not install the RPM on the host system.
+Now press the `+Next+` button.
 
-+
-[source,bash]
-----
-rpm -q epel-release
-----
+== ## Step 3: Partitioning storage
 
-NOTE: If your repository configurations are not distributed as an RPM, but instead as
-individual `.repo` files, you could use the `buildah copy` command to copy
-files from the host operating system into the container image.  You will see
-an example of using `buildah copy` later in this lab.
+In Step 3, we can manually configure the partitions of this system, or
+we can choose to let Image Builder set things up for us automatically.
+Let’s choose `+Manually configure partitions+`, this will open up a
+table below where we can add new partitions.
 
-[#software]
-== Installing Software
+.Image Builder Step 3 a
+image::ib-step3a.png[Image Builder Step 3 a]
 
+Now, you can use the `+Add partition+` button to add more partitions.
+You can also change the size or mount point of existing partitions in
+the table. Even remove partitions that you may have added by mistake.
 
-. Now that the yum repositories are defined within the container, execute 
-another `yum install`, within the container, to install the target
-software: `moon-buggy`.
+Let’s use the `+Add partition+` button to add a 5GiB /home and 2GiB /tmp
+to our image. You should end up with the following layout.
 
-+
-[source,bash]
-----
-buildah run ubi-working-container -- yum -y install moon-buggy
-----
+____
+_NOTE:_ This partition layout is for example purposes only, and not a
+recommended production system layout. More information on manual
+partitioning recommendations can be found in the
+https://access.redhat.com/documentation/en-us/red_hat_enterprise_linux/9/html/performing_a_standard_rhel_9_installation/assembly_customizing-your-installation_installing-rhel#manual-partitioning_graphical-installation[Red
+Hat Enterprise Linux 9 Installation guide].
+____
 
+.Image Builder Step 3 b
+image::ib-step3b.png[Image Builder Step 3 b]
 
-== Committing the Container Image
+Once your partition table looks like the one pictured above, press
+`+Next+`.
 
-. At this point, the container is configured.  It is time to transition from a
-working container into a committed image.  In the command below, you will use
-the `buildah` command to commit the working container to an image called:
-`moon-buggy`.
+== ## Step 4: Specify software
 
-+
-[source,bash]
-----
-buildah commit ubi-working-container moon-buggy
-----
+Step 4 lets us select packages that we would like installed on our
+system. The base image produced by Image Builder is intended to be
+small, and make very few assumptions about your desired package set. So
+having the ability to add in packages here can save you time later. For
+this lab, let’s add in a few packages. You do this by searching for the
+package using the `+Search for a package+` text box. And then adding it
+to the list of `+Chosen packages+` using the `+>+` button to add a
+single selected package, or the `+>>+` button to add all listed
+packages.
 
-+
-. The output of `podman image list` should confirm the image was created.
+Try searching for `+vim+` you should see a list of packages that match
+the word `+vim+`, select `+vim-enhanced+` from the list, and press the
+`+>+` button indicating that we would like to add just the selected
+package.
 
-+
-[source,bash]
-----
-podman image list
-----
+.Image Builder Step 4 a
+image::ib-step4a.png[Image Builder Step 4 a]
 
+Then press the `+Next+` button.
 
-== Deploy the Container
+== ## Step 5: Name your image
 
-Now the software has been installed and a new container image created.  It is
-time to spawn a runtime of the container image and validate the software.  The
-software we are using is a command line command.  
+On Step 5 you’ll just need to give your image a name. This should be
+unique, so try something like `+rhelworkshop-(your initials)+`
 
-. When you `run` the container,
-it will be in interactive (`-it`) mode, based on the `moon-buggy` container
-image and the command run interactively will be `/usr/bin/moon-buggy`.
+.Image Builder Step 5
+image::ib-step5.png[Image Builder Step 5]
 
-+
-[source,bash]
-----
-podman run -it moon-buggy /usr/bin/moon-buggy
-----
+Press `+Next+`.
 
-+
-[source,textinfo]
-----
+== ## Step 6: Review image configuration
 
-<<< OUTPUT ABRIDGED >>>
-               MM     MM   OOOOO    OOOOO   NN     N
-               M M   M M  O     O  O     O  N N    N
-               M  M M  M  O     O  O     O  N  N   N
-               M   M   M  O     O  O     O  N   N  N
-               M       M  O     O  O     O  N    N N
-               M       M   OOOOO    OOOOO   N     NN
+Step 6 is just a review. You can review the choices you’ve made and go
+back and make changes if you need to. If everything looks right, just
+press the `+Create image+` button.
 
-                     BBBBBB   U     U   GGGGG    GGGGG   Y     Y
-                     B     B  U     U  G     G  G     G   Y   Y
-                     BBBBBB   U     U  G        G          Y Y
-                     B     B  U     U  G   GGG  G   GGG     Y
-                     B     B  U     U  G     G  G     G    Y
-                     BBBBBB    UUUUU    GGGGG    GGGGG   YY
+.Image Builder Review
+image::ib-step6.png[Image Builder Review]
 
-<<< OUTPUT ABRIDGED >>>
-----
+This will submit your job to the Image Builder queue, and bring you back
+to the list of images. Your image will be ready for download, or give
+you the option to launch it on your cloud provider if you chose to push
+it to the cloud, after the image is built.
 
-. You can now play the Moon Buggy game, which is a text-based version of the
-popular Moon Patrol.  When you are finished, use the `q` command to quit the
-game, which will terminate the container.
+.Image Submitted
+image::ib-submitted.png[Image Submitted]
 
-+
-Alternatively, you can use `podman` to kill the running container from
-*Terminal 2*.
-
-+
-[source,bash]
-----
-podman kill $(podman ps | grep -v CONTAINER | cut -f1 -d" " )
-----
+In the next step of this lab we’ll have a look at an image that was
+built with the same specifications to the one you defined here.
